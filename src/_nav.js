@@ -11,7 +11,7 @@ export default {
             icon: 'icon-note'
         },
         {
-            name: 'Explorer',
+            name: 'Files',
             url: '/remoteExplorer',
             icon: 'icon-screen-desktop'
         },

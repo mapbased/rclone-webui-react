@@ -68,7 +68,7 @@ exports[`Remote Explorer renders should match snapshot 1`] = `
                   },
                   Object {
                     "icon": "icon-screen-desktop",
-                    "name": "Explorer",
+                    "name": "Files",
                     "url": "/remoteExplorer",
                   },
                   Object {
