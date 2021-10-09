@@ -175,6 +175,9 @@ class NewDrive extends React.Component {
             colSetup: false,
             colAdvanced: false,
             driveName: "",
+            driveNameS3: "",
+            driveNameW3s: "",
+
             driveNameIsEditable: true,
 
             advancedOptions: false,
@@ -191,6 +194,9 @@ class NewDrive extends React.Component {
 
             currentStepNumber: 1,
 
+            isShowW3sItem:true,
+            w3sTokenIsValid:true,
+            w3sToken:'',
             isShowS3Item: true, // s3
             isShowAdvancedItem: false, // Advanced
 
@@ -200,6 +206,8 @@ class NewDrive extends React.Component {
             s3SecretIsValid: true,
             s3StorageUrl: '', //
             s3StorageUrlIsValid: true,
+
+
         };
         this.configCheckInterval = null;
         // console.log("Params", this.props.match.params);
@@ -232,7 +240,7 @@ class NewDrive extends React.Component {
                 clearInterval(this.configCheckInterval);
                 this.configCheckInterval = null;
                 this.toggleAuthModal();
-                // this.props.history.push('/dashboard'); chy mark
+                // this.props.history.push('/dashboard');
                 this.props.history.push('/Configs');
             }
         } catch (e) {
@@ -544,6 +552,17 @@ class NewDrive extends React.Component {
         })
     }
 
+
+    changeW3sToken = value => {
+        let valid = true
+        if (!value || (value = value.trim()).length === 0) {
+            valid = false
+        }
+        this.setState({
+            w3sToken: value || '',
+            w3sTokenIsValid: valid,
+        })
+    }
     changeS3Secret = value => {
         let valid = true
         if (!value || (value = value.trim()).length === 0) {
@@ -647,6 +666,49 @@ class NewDrive extends React.Component {
     componentWillUnmount() {
         clearInterval(this.configCheckInterval);
         this.configCheckInterval = null;
+    }
+
+    onW3sTokenSubmit = () =>{
+        // this.changeS3Key(this.state.s3Key)
+        // this.changeS3Secret(this.state.s3Secret)
+        // this.changeS3StorageUrl(this.state.s3StorageUrl)
+        this.setState({}, () => {
+            // s3数据
+            // if (!this.state.s3KeyIsValid || !this.state.s3SecretIsValid || !this.state.s3StorageUrlIsValid) {
+            //     return
+            // }
+            // 名称
+            if (!this.state.driveNameIsValid) {
+                return;
+            }
+            if (!this.state.w3sTokenIsValid) {
+                return;
+            }
+
+            // 设置默认s3
+            this.changeDriveType({}, {newValue: 'w3s'})
+            // 设置秘钥
+            // this.setState({isShowAdvancedItem: true})
+            // this.gotoNextStep()
+
+            // 设置值
+            this.setState({
+                formValues: {
+                    ...this.state.formValues,
+                    // 'env_auth': false,
+                    // 'access_key_id': this.state.s3Key,
+                    // 'secret_access_key': this.state.s3Secret,
+                    // 'endpoint': this.state.s3StorageUrl,
+                    // 'acl': 'private',
+                    // 'storage_class': 'STANDARD',
+                }
+            }, () => {
+                console.log(this.state.formValues)
+                // 提交
+                this.handleSubmit(null)
+            });
+
+        });
     }
 
     onS3Submit = () => {
@@ -776,6 +838,10 @@ class NewDrive extends React.Component {
         if (type === 'S3') {
             this.setState({isShowS3Item: !this.state.isShowS3Item})
         }
+        if (type === 'w3s') {
+            this.setState({isShowW3sItem: !this.state.isShowW3sItem})
+        }
+
         if (type === 'Advanced') {
             this.setState({isShowAdvancedItem: !this.state.isShowAdvancedItem})
         }
@@ -783,15 +849,20 @@ class NewDrive extends React.Component {
 
 
     onGetKeyClick = (e) => {
-        const shell = window.require("electron").shell;
-        shell.openExternal("https://www.ipfsdrive.com/doce")
-        e.preventDefault();
+        // const shell = window.require("electron").shell;
+        // shell.openExternal("https://www.ipfsdrive.com/doce#getW3sToken")
+        // e.preventDefault();
+        window.open("https://www.ipfsdrive.com/doce#getW3sToken","_blank")
+        e.preventDefault()
     }
 
     render() {
-        const {drivePrefix, advancedOptions, driveName, driveNameIsValid, currentStepNumber} = this.state;
+        const {drivePrefix, advancedOptions, driveName,driveNameS3,driveNameW3s, driveNameIsValid, currentStepNumber} = this.state;
         const {s3KeyIsValid, s3SecretIsValid, s3StorageUrlIsValid} = this.state
         const {s3Key, s3Secret, s3StorageUrl} = this.state
+
+        const {w3sToken,w3sTokenIsValid} = this.state
+
         const {providers} = this.props;
         return (
             <div data-test="newDriveComponent">
@@ -800,17 +871,76 @@ class NewDrive extends React.Component {
                     {/*<div className={["cui-chart"]}></div>*/}
                     <div>
                         {/*<img src={this.state.isShowS3Item ? arrowDown : arrow} style={{width: 20}}/>*/}
+
+                        {this.state.isShowW3sItem  && <i className='icon-arrow-down'/>}
+                        {!this.state.isShowW3sItem && <i className='icon-arrow-right'/>}
+
+
+                        <Button color="link" onClick={() => this.onItemClick('w3s')}>W3s Connect</Button>
+                    </div>
+
+                    {
+
+                        this.state.isShowW3sItem ? <div>
+                            <Card>
+                                <CardBody>
+                                    <CustomInput label="Name of this drive (For your reference)"
+                                                 changeHandler={this.changeNameW3s} value={driveNameW3s}
+                                                 placeholder={"Enter a name"} name="nameW3s" id="driveNameW3s"
+                                                 isValid={driveNameIsValid}/>
+
+                                    {/*<FormGroup row>*/}
+                                    {/*  <Label for="driveType" sm={5}>Select</Label>*/}
+                                    {/*  <Col sm={7}>*/}
+                                    {/*    <ProviderAutoSuggest suggestions={providers} value={drivePrefix}*/}
+                                    {/*                         onChange={this.changeDriveType}/>*/}
+                                    {/*  </Col>*/}
+                                    {/*</FormGroup>*/}
+
+                                    <CustomInput label="W3S Token"
+                                                 changeHandler={(e) => this.changeW3sToken(e.target.value)} value={w3sToken}
+                                                 placeholder={"Enter web3 storage token"} name="w3sToken" id="w3sTokenName"
+                                                 isValid={w3sTokenIsValid}/>
+
+                                    {/*<CustomInput label="S3 Secret"*/}
+                                    {/*             changeHandler={(e) => this.changeS3Secret(e.target.value)} value={s3Secret}*/}
+                                    {/*             placeholder={"Enter a Secret"} name="s3Secret" id="s3SecretName"*/}
+                                    {/*             isValid={s3SecretIsValid}/>*/}
+
+                                    {/*<CustomInput label="S3 Storage Url"*/}
+                                    {/*             changeHandler={(e) => this.changeS3StorageUrl(e.target.value)} value={s3StorageUrl}*/}
+                                    {/*             placeholder={"Enter a Storage Url"} name="s3StorageUrl" id="s3StorageUrlName"*/}
+                                    {/*             isValid={s3StorageUrlIsValid}/>*/}
+
+                                    <div className="clearfix">
+                                        <div className="float-right">
+                                            <a href="javascript:void(0)" target="_blank" onClick={this.onGetKeyClick}>Get Key From Storage
+                                                Server</a>
+                                            <Button className="ml-3 btn-blue" onClick={this.onW3sTokenSubmit}>Submit</Button>
+                                        </div>
+                                    </div>
+                                </CardBody>
+                            </Card>
+                        </div> : ''
+                    }
+
+                    <div>
+                        {/*<img src={this.state.isShowS3Item ? arrowDown : arrow} style={{width: 20}}/>*/}
                         {this.state.isShowS3Item && <i className='icon-arrow-down'/>}
                         {!this.state.isShowS3Item && <i className='icon-arrow-right'/>}
+
+
+
                         <Button color="link" onClick={() => this.onItemClick('S3')}>S3 Connect</Button>
                     </div>
+
                     {
                         this.state.isShowS3Item ? <div>
                             <Card>
                                 <CardBody>
                                     <CustomInput label="Name of this drive (For your reference)"
-                                                 changeHandler={this.changeName} value={driveName}
-                                                 placeholder={"Enter a name"} name="name" id="driveName"
+                                                 changeHandler={this.changeName} value={driveNameS3}
+                                                 placeholder={"Enter a name"} name="nameS3" id="driveNameS3"
                                                  isValid={driveNameIsValid}/>
 
                                     {/*<FormGroup row>*/}
@@ -847,6 +977,7 @@ class NewDrive extends React.Component {
                             </Card>
                         </div> : ''
                     }
+
                     <div>
                         {/*<img src={this.state.isShowAdvancedItem ? arrowDown : arrow} style={{width: 20}}/>*/}
                         {this.state.isShowAdvancedItem && <i className='icon-arrow-down'/>}

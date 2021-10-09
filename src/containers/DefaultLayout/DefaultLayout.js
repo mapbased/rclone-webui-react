@@ -30,7 +30,7 @@ const VERSION_NAV_ITEM_ATTRS = {
     attributes: { target: '_blank' },
     class: 'mt-auto',
     icon: 'cui-cog',
-    url: 'https://rclone.org/changelog',
+    url: 'https://www.ipfsdrive.com/changelog',
     variant: 'success'
 }
 class DefaultLayout extends Component {
