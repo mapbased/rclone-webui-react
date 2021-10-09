@@ -34,7 +34,7 @@ class ShowConfig extends React.PureComponent {
                 <Row>
                     <Col lg={8} className={"mb-4"}>
                         <Button color={"primary"} className={"float-left"}
-                                onClick={() => this.props.history.push("/newdrive")}>
+                                onClick={() => this.props.history.push("/simplenewdrive")}>
                             Create a New Config
                         </Button>
                     </Col>

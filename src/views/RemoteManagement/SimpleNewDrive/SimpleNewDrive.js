@@ -20,6 +20,9 @@ import {NEW_DRIVE_CONFIG_REFRESH_TIMEOUT} from "../../../utils/Constants";
 import ErrorBoundary from "../../../ErrorHandling/ErrorBoundary";
 import urls from "../../../utils/API/endpoint";
 
+import arrow from '../../../assets/img/arrow.png';
+import arrowDown from '../../../assets/img/arrow-down.png';
+
 /**
  * Returns a component with set of input, error for the drivePrefix.
  * The input type changes based on config.Options.Type parameter. see code for details.
@@ -172,6 +175,9 @@ class NewDrive extends React.Component {
             colSetup: false,
             colAdvanced: false,
             driveName: "",
+            driveNameS3: "",
+            driveNameW3s: "",
+
             driveNameIsEditable: true,
 
             advancedOptions: false,
@@ -186,7 +192,21 @@ class NewDrive extends React.Component {
             optionTypes: {},
             isValid: {},
 
-            currentStepNumber: 1
+            currentStepNumber: 1,
+
+            isShowW3sItem: true,
+            w3sTokenIsValid: true,
+            w3sToken: '',
+            isShowS3Item: false, // s3
+            isShowAdvancedItem: false, // Advanced
+
+            s3Key: '', //
+            s3KeyIsValid: true,
+            s3Secret: '', //
+            s3SecretIsValid: true,
+            s3StorageUrl: '', //
+            s3StorageUrlIsValid: true,
+
 
         };
         this.configCheckInterval = null;
@@ -220,8 +240,8 @@ class NewDrive extends React.Component {
                 clearInterval(this.configCheckInterval);
                 this.configCheckInterval = null;
                 this.toggleAuthModal();
-                this.props.history.push('/dashboard');
-
+                // this.props.history.push('/dashboard');
+                this.props.history.push('/Configs');
             }
         } catch (e) {
             // console.log(`Error occurred while checking for config: ${e}`);
@@ -512,6 +532,86 @@ class NewDrive extends React.Component {
         }
     }
 
+
+    async handleSubmitW3s(e) {
+        e && e.preventDefault();
+        // console.log("Submitted form");
+
+        const {formValues} = this.state;
+        const {providers} = this.props;
+
+
+        let  v=this.validateForm()
+        console.log(v)
+        if (true) {
+
+
+            let drivePrefix = "w3s";
+
+            const currentProvider = findFromConfig(providers, drivePrefix);
+            console.log(currentProvider)
+            if (currentProvider !== undefined) {
+
+
+                const defaults = currentProvider.Options;
+
+                // console.log(config, formValues, defaults);
+
+                let finalParameterValues = {};
+
+
+                for (const [key, value] of Object.entries(formValues)) {
+
+                    if (key === "token") {
+                        finalParameterValues[key] = value;
+                        continue;
+                    }
+                    const defaultValueObj = defaults.find((ele, idx, array) => {
+                        // console.log(key, ele.Name, key === ele.Name);
+                        return (key === ele.Name);
+                    });
+                    if (defaultValueObj) {
+
+                        const {DefaultStr} = defaultValueObj;
+                        if (value !== DefaultStr) {
+                            // console.log(`${value} !== ${DefaultStr}`);
+                            finalParameterValues[key] = value;
+                        }
+                    }
+
+                }
+
+
+                let data = {
+                    parameters: finalParameterValues,
+
+                    name: this.state.driveName,
+                    type: this.state.drivePrefix
+                };
+
+
+                // console.log("Validated form");
+                this.startAuthentication();
+                try {
+                    const {drivePrefix} = this.props.match.params;
+
+                    await axiosInstance.post(urls.createConfig, data);
+                    toast.info("Config created");
+
+
+                } catch (err) {
+                    toast.error(`Error creating config. ${err}`, {
+                        autoClose: false
+                    });
+                    this.stopAuthentication();
+                }
+
+            }
+        }
+
+    }
+
+
     /**
      * Clears the entire form.
      * Clearing the driveName and drivePrefix automatically clears the inputs as well.
@@ -520,6 +620,50 @@ class NewDrive extends React.Component {
         this.setState({driveName: "", drivePrefix: ""})
     };
 
+
+    changeS3Key = value => {
+        let valid = true
+        if (!value || (value = value.trim()).length === 0) {
+            valid = false
+        }
+        this.setState({
+            s3Key: value || '',
+            s3KeyIsValid: valid,
+        })
+    }
+
+
+    changeW3sToken = value => {
+        let valid = true
+        if (!value || (value = value.trim()).length === 0) {
+            valid = false
+        }
+        this.setState({
+            w3sToken: value || '',
+            w3sTokenIsValid: valid,
+        })
+    }
+    changeS3Secret = value => {
+        let valid = true
+        if (!value || (value = value.trim()).length === 0) {
+            valid = false
+        }
+        this.setState({
+            s3Secret: value || '',
+            s3SecretIsValid: valid,
+        })
+    }
+
+    changeS3StorageUrl = value => {
+        let valid = true
+        if (!value || (value = value.trim()).length === 0) {
+            valid = false
+        }
+        this.setState({
+            s3StorageUrl: value || '',
+            s3StorageUrlIsValid: valid,
+        })
+    }
 
     /**
      * Change the name of the drive. Check if it already exists, if not, allow to be changes, else set error.
@@ -575,7 +719,6 @@ class NewDrive extends React.Component {
     componentDidMount() {
         const {drivePrefix} = this.props.match.params;
 
-
         if (!this.props.providers || this.props.providers.length < 1)
             this.props.getProviders();
 
@@ -605,7 +748,100 @@ class NewDrive extends React.Component {
         this.configCheckInterval = null;
     }
 
+    onW3sTokenSubmit = () => {
+        console.log("in")
+        // this.changeS3Key(this.state.s3Key)
+        // this.changeS3Secret(this.state.s3Secret)
+        // this.changeS3StorageUrl(this.state.s3StorageUrl)
+        this.setState({}, () => {
+            // s3数据
+            // if (!this.state.s3KeyIsValid || !this.state.s3SecretIsValid || !this.state.s3StorageUrlIsValid) {
+            //     return
+            // }
+            // 名称
+            if (!this.state.driveNameIsValid) {
+                return;
+            }
+            if (!this.state.w3sTokenIsValid) {
+                return;
+            }
+
+            // 设置默认s3
+            this.changeDriveType({}, {newValue: 'w3s'})
+            // 设置秘钥
+            // this.setState({isShowAdvancedItem: true})
+            // this.gotoNextStep()
+
+            // 设置值
+            this.setState({
+                formValues: {
+                    ...this.state.formValues,
+                    'env_auth': false,
+                    'w3s_token': this.state.w3sToken,
+                    'secret_access_key': this.state.s3Secret,
+                    'w3s_server_url': "https://api.web3.storage",
+                    // 'env_auth': false,
+                    // 'access_key_id': this.state.s3Key,
+                    // 'secret_access_key': this.state.s3Secret,
+                    // 'endpoint': this.state.s3StorageUrl,
+                    // 'acl': 'private',
+                    // 'storage_class': 'STANDARD',
+                }
+            }, () => {
+                console.log(this.state.formValues)
+                // 提交
+                this.handleSubmitW3s(null)
+            });
+
+        });
+    }
+
+    onS3Submit = () => {
+        this.changeS3Key(this.state.s3Key)
+        this.changeS3Secret(this.state.s3Secret)
+        this.changeS3StorageUrl(this.state.s3StorageUrl)
+        this.setState({}, () => {
+            // s3数据
+            if (!this.state.s3KeyIsValid || !this.state.s3SecretIsValid || !this.state.s3StorageUrlIsValid) {
+                return
+            }
+            // 名称
+            if (!this.state.driveNameIsValid) {
+                return;
+            }
+
+            // 设置默认s3
+            this.changeDriveType({}, {newValue: 's3'})
+            // 设置秘钥
+            // this.setState({isShowAdvancedItem: true})
+            // this.gotoNextStep()
+
+            // 设置值
+            this.setState({
+                formValues: {
+                    ...this.state.formValues,
+                    'env_auth': false,
+                    'access_key_id': this.state.s3Key,
+                    'secret_access_key': this.state.s3Secret,
+                    'endpoint': this.state.s3StorageUrl,
+                    'acl': 'private',
+                    'storage_class': 'STANDARD',
+                }
+            }, () => {
+                console.log(this.state.formValues)
+                // 提交
+                this.handleSubmit(null)
+            });
+
+        });
+    };
+
     gotoNextStep = () => {
+        // 添加名称检查
+        if (!this.state.driveNameIsValid) {
+            return;
+        }
+
         const {currentStepNumber, advancedOptions} = this.state;
         if ((advancedOptions && currentStepNumber === 3) || (!advancedOptions && currentStepNumber === 2)) {
             this.handleSubmit(null);
@@ -683,119 +919,175 @@ class NewDrive extends React.Component {
             </div>
        ) */
 
+    onItemClick = (type) => {
+        if (type === 'S3') {
+            this.setState({isShowS3Item: !this.state.isShowS3Item})
+            this.setState({isShowW3sItem: !this.state.isShowW3sItem})
+        }
+        if (type === 'w3s') {
+            this.setState({isShowS3Item: !this.state.isShowS3Item})
+            this.setState({isShowW3sItem: !this.state.isShowW3sItem})
+        }
+
+        if (type === 'Advanced') {
+            this.setState({isShowAdvancedItem: !this.state.isShowAdvancedItem})
+        }
+    }
+
+
+    onGetKeyClick = (e) => {
+        // const shell = window.require("electron").shell;
+        // shell.openExternal("https://www.ipfsdrive.com/doce#getW3sToken")
+        // e.preventDefault();
+        window.open("https://www.ipfsdrive.com/doce#getW3sToken", "_blank")
+        e.preventDefault()
+    }
 
     render() {
-        const {drivePrefix, advancedOptions, driveName, driveNameIsValid, currentStepNumber} = this.state;
+        const {
+            drivePrefix,
+            advancedOptions,
+            driveName,
+            driveNameS3,
+            driveNameW3s,
+            driveNameIsValid,
+            currentStepNumber
+        } = this.state;
+        const {s3KeyIsValid, s3SecretIsValid, s3StorageUrlIsValid} = this.state
+        const {s3Key, s3Secret, s3StorageUrl} = this.state
+
+        const {w3sToken, w3sTokenIsValid} = this.state
+
         const {providers} = this.props;
         return (
             <div data-test="newDriveComponent">
                 <ErrorBoundary>
-                    <p>This 3 step process will guide you through creating a new config. For auto config, leave the
-                        parameters as it is.</p>
-                    <this.StepShowCase currentStepNumber={currentStepNumber}/>
-                    <Collapse isOpen={currentStepNumber === 1}>
-                        <Card>
+                    {/*<CIcon name="cil-list" size="2xl"/>*/}
+                    {/*<div className={["cui-chart"]}></div>*/}
+                    <div>
+                        {/*<img src={this.state.isShowS3Item ? arrowDown : arrow} style={{width: 20}}/>*/}
 
-                            <CardBody>
-                                <CustomInput label="Name of this drive (For your reference)"
-                                             changeHandler={this.changeName} value={driveName}
-                                             placeholder={"Enter a name"} name="name" id="driveName"
-                                             isValid={driveNameIsValid}/>
+                        {this.state.isShowW3sItem && <i className='icon-arrow-down'/>}
+                        {!this.state.isShowW3sItem && <i className='icon-arrow-right'/>}
 
-                                <FormGroup row>
-                                    <Label for="driveType" sm={5}>Select</Label>
-                                    <Col sm={7}>
-                                        <ProviderAutoSuggest suggestions={providers} value={drivePrefix}
-                                                             onChange={this.changeDriveType}/>
-                                    </Col>
-                                </FormGroup>
-                                <FormGroup row>
-                                    <Col sm={3}>
-                                        <Label for="inputDriveName">Docs are available at </Label>{' '}
-                                        <a href="https://rclone.org/commands/rclone_config/">Rclone Config</a>
-                                    </Col>
-                                </FormGroup>
-                                <div className="clearfix">
-                                    <div className="float-right">
 
-                                        <Button className="ml-3 btn-blue" onClick={this.gotoNextStep}>Next</Button>
+                        <Button color="link" onClick={() => this.onItemClick('w3s')}>W3s Connect</Button>
+                    </div>
 
+                    {
+
+                        this.state.isShowW3sItem ? <div>
+                            <Card>
+                                <CardBody>
+                                    <CustomInput label="Name of this drive (For your reference)"
+                                                 changeHandler={this.changeName} value={driveName}
+                                                 placeholder={"Enter a name"} name="name" id="driveName"
+                                                 isValid={driveNameIsValid}/>
+
+                                    {/*<FormGroup row>*/}
+                                    {/*  <Label for="driveType" sm={5}>Select</Label>*/}
+                                    {/*  <Col sm={7}>*/}
+                                    {/*    <ProviderAutoSuggest suggestions={providers} value={drivePrefix}*/}
+                                    {/*                         onChange={this.changeDriveType}/>*/}
+                                    {/*  </Col>*/}
+                                    {/*</FormGroup>*/}
+
+                                    <CustomInput label="W3S Token"
+                                                 changeHandler={(e) => this.changeW3sToken(e.target.value)}
+                                                 value={w3sToken}
+                                                 placeholder={"Enter web3 storage token"} name="w3sToken"
+                                                 id="w3sTokenName"
+                                                 isValid={w3sTokenIsValid}/>
+
+                                    {/*<CustomInput label="S3 Secret"*/}
+                                    {/*             changeHandler={(e) => this.changeS3Secret(e.target.value)} value={s3Secret}*/}
+                                    {/*             placeholder={"Enter a Secret"} name="s3Secret" id="s3SecretName"*/}
+                                    {/*             isValid={s3SecretIsValid}/>*/}
+
+                                    {/*<CustomInput label="S3 Storage Url"*/}
+                                    {/*             changeHandler={(e) => this.changeS3StorageUrl(e.target.value)} value={s3StorageUrl}*/}
+                                    {/*             placeholder={"Enter a Storage Url"} name="s3StorageUrl" id="s3StorageUrlName"*/}
+                                    {/*             isValid={s3StorageUrlIsValid}/>*/}
+
+                                    <div className="clearfix">
+                                        <div className="float-right">
+                                            <a href="javascript:void(0)" target="_blank" onClick={this.onGetKeyClick}>Get
+                                                Key From Storage
+                                                Server</a>
+                                            <Button className="ml-3 btn-blue"
+                                                    onClick={this.onW3sTokenSubmit}>Submit</Button>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardBody>
+                                </CardBody>
+                            </Card>
+                        </div> : ''
+                    }
 
-                        </Card>
-                    </Collapse>
-                    <Collapse isOpen={currentStepNumber === 2}>
-                        <Card>
-                            {/*div for Scrolling to here*/}
-                            {/* <div ref={(el) => this.setupDriveDiv = el}/> */}
-                            <CardBody>
-                                <DriveParameters drivePrefix={drivePrefix} loadAdvanced={false}
-                                                 changeHandler={this.handleInputChange}
-                                                 errorsMap={this.state.formErrors}
-                                                 isValidMap={this.state.isValid}
-                                                 currentValues={this.state.formValues} config={providers}/>
+                    <div>
+                        {/*<img src={this.state.isShowS3Item ? arrowDown : arrow} style={{width: 20}}/>*/}
+                        {this.state.isShowS3Item && <i className='icon-arrow-down'/>}
+                        {!this.state.isShowS3Item && <i className='icon-arrow-right'/>}
 
-                                <div className="clearfix">
-                                    <div className="float-right">
-                                        <Input type="checkbox" value={advancedOptions}
-                                               onChange={this.editAdvancedOptions}/><span className="mr-3">Edit Advanced Options</span>
-                                        <Button className="btn-no-background" onClick={this.gotoPrevStep}>Go
-                                            back</Button>
 
-                                        <Button className="ml-3 btn-blue" onClick={this.gotoNextStep}>Next</Button>
+                        <Button color="link" onClick={() => this.onItemClick('S3')}>S3 Connect</Button>
+                    </div>
 
+                    {
+                        this.state.isShowS3Item ? <div>
+                            <Card>
+                                <CardBody>
+                                    <CustomInput label="Name of this drive (For your reference)"
+                                                 changeHandler={this.changeName} value={driveName}
+                                                 placeholder={"Enter a name"} name="nameS3" id="driveName"
+                                                 isValid={driveNameIsValid}/>
+
+                                    {/*<FormGroup row>*/}
+                                    {/*  <Label for="driveType" sm={5}>Select</Label>*/}
+                                    {/*  <Col sm={7}>*/}
+                                    {/*    <ProviderAutoSuggest suggestions={providers} value={drivePrefix}*/}
+                                    {/*                         onChange={this.changeDriveType}/>*/}
+                                    {/*  </Col>*/}
+                                    {/*</FormGroup>*/}
+
+                                    <CustomInput label="S3 Key"
+                                                 changeHandler={(e) => this.changeS3Key(e.target.value)} value={s3Key}
+                                                 placeholder={"Enter a key"} name="s3Key" id="s3KeyName"
+                                                 isValid={s3KeyIsValid}/>
+
+                                    <CustomInput label="S3 Secret"
+                                                 changeHandler={(e) => this.changeS3Secret(e.target.value)}
+                                                 value={s3Secret}
+                                                 placeholder={"Enter a Secret"} name="s3Secret" id="s3SecretName"
+                                                 isValid={s3SecretIsValid}/>
+
+                                    <CustomInput label="S3 Storage Url"
+                                                 changeHandler={(e) => this.changeS3StorageUrl(e.target.value)}
+                                                 value={s3StorageUrl}
+                                                 placeholder={"Enter a Storage Url"} name="s3StorageUrl"
+                                                 id="s3StorageUrlName"
+                                                 isValid={s3StorageUrlIsValid}/>
+
+                                    <div className="clearfix">
+                                        <div className="float-right">
+                                            <a href="javascript:void(0)" target="_blank" onClick={this.onGetKeyClick}>Get
+                                                Key From Storage
+                                                Server</a>
+                                            <Button className="ml-3 btn-blue" onClick={this.onS3Submit}>Submit</Button>
+                                        </div>
                                     </div>
-                                </div>
-                            </CardBody>
-                        </Card>
-                    </Collapse>
-                    <Collapse isOpen={currentStepNumber === 3}>
-                        <Card>
-                            {/* <CardHeader>
-                                    <h5>
-                                        <Button color="link" name="colAdvanced" onClick={this.toggle}
-                                                style={{marginBottom: '1rem'}}><strong>Step 3:</strong> Advanced
-                                            (optional)</Button>
+                                </CardBody>
+                            </Card>
+                        </div> : ''
+                    }
 
-                                    </h5>
+                    <div>
+                        {/*<img src={this.state.isShowAdvancedItem ? arrowDown : arrow} style={{width: 20}}/>*/}
+                        {this.state.isShowAdvancedItem && <i className='icon-arrow-down'/>}
+                        {!this.state.isShowAdvancedItem && <i className='icon-arrow-right'/>}
+                        <Button color="link" onClick={() => this.props.history.push("/newdrive")}>
+                            Advanced</Button>
+                    </div>
 
-                                </CardHeader> */}
-
-
-                            <CardBody>
-                                <DriveParameters drivePrefix={drivePrefix} loadAdvanced={true}
-                                                 changeHandler={this.handleInputChange}
-                                                 errorsMap={this.state.formErrors}
-                                                 isValidMap={this.state.isValid}
-                                                 currentValues={this.state.formValues} config={providers}/>
-
-                                <div className="clearfix">
-                                    <div className="float-right">
-                                        <Input type="checkbox" value={advancedOptions}
-                                               onChange={this.editAdvancedOptions}/><span className="mr-3">Edit Advanced Options</span>
-                                        <Button className="btn-no-background" onClick={this.gotoPrevStep}>Go
-                                            back</Button>
-
-                                        <Button className="ml-3 btn-blue" onClick={this.gotoNextStep}>Next</Button>
-                                    </div>
-                                </div>
-                            </CardBody>
-
-
-                        </Card>
-                    </Collapse>
-                    {/* <div className="clearfix" ref={(el) => {
-                            this.configEndDiv = el
-                        }}>
-                            <div className="float-right mb-3">
-                                <Button color="info" type="reset" onClick={() => this.clearForm()}>Clear</Button>
-                                <Button color="success" type="submit">Create Config</Button>
-
-                            </div>
-                        </div> */}
-                    <NewDriveAuthModal isVisible={this.state.authModalIsVisible} closeModal={this.toggleAuthModal}/>
                 </ErrorBoundary>
             </div>);
     }
